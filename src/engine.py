@@ -4,7 +4,7 @@ from src.input_handlers import handle_keys
 
 def main():
     """
-    comment
+    Testing GitHub integration
     :return: None
     """
     screen_width = 80
