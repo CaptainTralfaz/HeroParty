@@ -3,6 +3,10 @@ from src.input_handlers import handle_keys
 
 
 def main():
+    """
+    comment
+    :return: None
+    """
     screen_width = 80
     screen_height = 50
     
