@@ -31,6 +31,8 @@ def main():
         libtcod.console_blit(src=con, x=0, y=0, w=screen_width, h=screen_height, dst=0, xdst=0, ydst=0)
         libtcod.console_flush()
         
+        libtcod.console_put_char(con=con, x=player_x, y=player_y, c=' ', flag=libtcod.BKGND_NONE)
+
         action = handle_keys(key=key)
         
         move = action.get('move')
