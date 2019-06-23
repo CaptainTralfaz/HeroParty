@@ -3,6 +3,7 @@ from src.input_handlers import handle_keys
 from src.entity import Entity
 from src.render_functions import render_all, clear_all
 from src.map_objects.game_map import GameMap
+from src.fov_functions import initialize_fov, recompute_fov
 
 
 def main():
@@ -19,9 +20,13 @@ def main():
     room_min_size = 6
     max_rooms = 30
     
+    fov_radius = 8
+    
     colors = {
         'dark_wall': libtcod.Color(0, 0, 100),
-        'dark_ground': libtcod.Color(50, 50, 150)
+        'dark_ground': libtcod.Color(50, 50, 150),
+        'light_wall': libtcod.Color(130, 110, 50),
+        'light_ground': libtcod.Color(200, 180, 50)
     }
     
     player = Entity(x=screen_width // 2, y=screen_height // 2, char='@', color=libtcod.white)
@@ -39,14 +44,20 @@ def main():
     game_map.make_map(max_rooms=max_rooms, room_min_size=room_min_size, room_max_size=room_max_size,
                       map_width=map_width, map_height=map_height, player=player)
     
+    fov_recompute = True
+    fov_map = initialize_fov(game_map=game_map)
+    
     key = libtcod.Key()
     mouse = libtcod.Mouse()
     
     while not libtcod.console_is_window_closed():
         libtcod.sys_check_for_event(mask=libtcod.EVENT_KEY_PRESS, k=key, m=mouse)
         
-        render_all(con=con, entities=entities, game_map=game_map, screen_width=screen_width,
-                   screen_height=screen_height, colors=colors)
+        if fov_recompute:
+            recompute_fov(fov_map=fov_map, x=player.x, y=player.y, radius=fov_radius)
+        
+        render_all(con=con, entities=entities, game_map=game_map, fov_map=fov_map, fov_recompute=fov_recompute,
+                   screen_width=screen_width, screen_height=screen_height, colors=colors)
         
         libtcod.console_flush()
         
@@ -62,6 +73,7 @@ def main():
             dx, dy = move
             if not game_map.is_blocked(player.x + dx, player.y + dy):
                 player.move(dx=dx, dy=dy)
+                fov_recompute = True
         
         if exit_game:
             return True
