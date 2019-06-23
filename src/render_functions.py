@@ -1,11 +1,20 @@
+from enum import IntEnum
+
 import tcod as libtcod
 
 
-def render_all(con, entities, game_map, fov_map, fov_recompute, screen_width, screen_height, colors):
+class RenderOrder(IntEnum):
+    CORPSE = 1
+    ITEM = 2
+    ACTOR = 3
+
+
+def render_all(con, entities, player, game_map, fov_map, fov_recompute, screen_width, screen_height, colors):
     """
     Draw all entities in the list
     :param con: destination drawing console
-    :param entities: list of entity objects
+    :param entities: list of Entity objects
+    :param player: the player Entity object
     :param game_map: GameMap object
     :param fov_map: map of field of view
     :param fov_recompute: boolean
@@ -36,10 +45,17 @@ def render_all(con, entities, game_map, fov_map, fov_recompute, screen_width, sc
                     else:
                         libtcod.console_set_char_background(con=con, x=x, y=y, col=colors.get('dark_ground'),
                                                             flag=libtcod.BKGND_SET)
-
-    for entity in entities:
+    
+    entities_in_render_order = sorted(entities, key=lambda z: z.render_order.value)
+    
+    for entity in entities_in_render_order:
         draw_entity(con=con, entity=entity, fov_map=fov_map)
-
+    
+    libtcod.console_set_default_foreground(con=con, col=libtcod.white)
+    libtcod.console_print_ex(con, 1, screen_height - 2, libtcod.BKGND_NONE, libtcod.LEFT,
+                             'HP: {0:02}/{1:02}'.format(player.fighter.hp, player.fighter.max_hp))
+    
+    # noinspection PyTypeChecker
     libtcod.console_blit(src=con, x=0, y=0, w=screen_width, h=screen_height, dst=0, xdst=0, ydst=0)
 
 
