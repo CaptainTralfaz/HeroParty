@@ -34,7 +34,8 @@ def render_all(con, entities, player, game_map, fov_map, fov_recompute, screen_w
                         libtcod.console_set_char_background(con=con, x=x, y=y, col=colors.get('light_wall'),
                                                             flag=libtcod.BKGND_SET)
                     else:
-                        # libtcod.console_set_char(con=con, x=x, y=y, c='.')
+                        libtcod.console_set_char_foreground(con=con, x=x, y=y, col=colors.get('light_wall'))
+                        libtcod.console_set_char(con=con, x=x, y=y, c='.')
                         libtcod.console_set_char_background(con=con, x=x, y=y, col=colors.get('light_ground'),
                                                             flag=libtcod.BKGND_SET)
                     game_map.tiles[x][y].explored = True
@@ -43,9 +44,10 @@ def render_all(con, entities, player, game_map, fov_map, fov_recompute, screen_w
                         libtcod.console_set_char_background(con=con, x=x, y=y, col=colors.get('dark_wall'),
                                                             flag=libtcod.BKGND_SET)
                     else:
+                        libtcod.console_set_char(con=con, x=x, y=y, c=' ')
                         libtcod.console_set_char_background(con=con, x=x, y=y, col=colors.get('dark_ground'),
                                                             flag=libtcod.BKGND_SET)
-    
+
     entities_in_render_order = sorted(entities, key=lambda z: z.render_order.value)
     
     for entity in entities_in_render_order:
