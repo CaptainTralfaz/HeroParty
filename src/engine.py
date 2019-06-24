@@ -8,17 +8,22 @@ from src.game_states import GameStates
 from src.input_handlers import handle_keys
 from src.map_objects.game_map import GameMap
 from src.render_functions import render_all, clear_all, RenderOrder
-
+from src.game_messages import MessageLog
 
 def main():
-    """
-    Testing GitHub integration
-    :return: None
-    """
     screen_width = 80
     screen_height = 50
+    
+    bar_width = 20
+    panel_height = 7
+    panel_y = screen_height - panel_height
+
+    message_x = bar_width + 2
+    message_width = screen_width - bar_width - 2
+    message_height = panel_height - 1
+
     map_width = 80
-    map_height = 45
+    map_height = 43
     
     room_max_size = 10
     room_min_size = 6
@@ -45,6 +50,7 @@ def main():
     libtcod.console_init_root(w=screen_width, h=screen_height, title='Hero Party', fullscreen=False)
     
     con = libtcod.console_new(w=screen_width, h=screen_height)
+    panel = libtcod.console_new(w=screen_width, h=panel_height)
     
     game_map = GameMap(width=map_width, height=map_height)
     game_map.make_map(max_rooms=max_rooms, room_min_size=room_min_size, room_max_size=room_max_size,
@@ -54,19 +60,23 @@ def main():
     fov_recompute = True
     fov_map = initialize_fov(game_map=game_map)
     
+    message_log = MessageLog(message_x, message_width, message_height)
+
     key = libtcod.Key()
     mouse = libtcod.Mouse()
     
     game_state = GameStates.PLAYERS_TURN
     
     while not libtcod.console_is_window_closed():
-        libtcod.sys_check_for_event(mask=libtcod.EVENT_KEY_PRESS, k=key, m=mouse)
+        libtcod.sys_check_for_event(mask=libtcod.EVENT_KEY_PRESS | libtcod.EVENT_MOUSE, k=key, m=mouse)
         
         if fov_recompute:
             recompute_fov(fov_map=fov_map, x=player.x, y=player.y, radius=fov_radius)
         
-        render_all(con=con, entities=entities, player=player, game_map=game_map, fov_map=fov_map,
-                   fov_recompute=fov_recompute, screen_width=screen_width, screen_height=screen_height, colors=colors)
+        render_all(con=con, panel=panel, entities=entities, player=player, game_map=game_map, fov_map=fov_map,
+                   fov_recompute=fov_recompute, message_log=message_log, screen_width=screen_width,
+                   screen_height=screen_height,
+                   bar_width=bar_width, panel_height=panel_height, panel_y=panel_y, mouse=mouse, colors=colors)
         
         libtcod.console_flush()
         
@@ -112,15 +122,15 @@ def main():
             dead_entity = result.get('dead')
             
             if message:
-                print(message)
+                message_log.add_message(message)
             
             if dead_entity:
                 if dead_entity == player:
                     message, game_state = kill_player(dead_entity)
                 else:
                     message = kill_monster(dead_entity)
-                
-                print(message)
+
+                message_log.add_message(message)
         
         if game_state == GameStates.ENEMY_TURN:
             entities_in_distance_order = sorted(entities, key=lambda z: z.distance_to(player))
@@ -134,15 +144,15 @@ def main():
                         dead_entity = result.get('dead')
                         
                         if message:
-                            print(message)
+                            message_log.add_message(message)
                         
                         if dead_entity:
                             if dead_entity == player:
                                 message, game_state = kill_player(player=dead_entity)
                             else:
                                 message = kill_monster(dead_entity)
-                            
-                            print(message)
+
+                            message_log.add_message(message)
                             
                             if game_state == GameStates.PLAYER_DEAD:
                                 break
