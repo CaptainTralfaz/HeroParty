@@ -3,9 +3,9 @@ from src.map_objects.rectangle import Rect
 from random import randint
 from src.entity import Entity
 import tcod as libtcod
-from src.components.fighter import Fighter
 from src.components.ai import BasicMonster
 from src.render_functions import RenderOrder
+from src.components.party import PartyMember, Party
 
 
 class GameMap:
@@ -147,16 +147,23 @@ class GameMap:
             x, y = room.random()
             
             if not any([entity for entity in entities if entity.x == x and entity.y == y]):
-                if randint(0, 100) < 80:
-                    fighter_component = Fighter(hp=10, defense=0, power=3)
+                if randint(0, 100) <= 100:
+                    party_component = Party()
+                    member_1 = PartyMember(name="Brute", profession="Kobold", offensive_cd=5, defensive_cd=4,
+                                           attack_type=1, cost=0)
+                    member_2 = PartyMember(name="Rogue", profession="Kobold", offensive_cd=4, defensive_cd=5,
+                                           attack_type=1, cost=0)
+                    party_component.add_member(member_1)
+                    party_component.add_member(member_2)
                     ai_component = BasicMonster()
-                    monster = Entity(x=x, y=y, char='o', color=libtcod.desaturated_green, name='Orc', blocks=True,
-                                     render_order=RenderOrder.ACTOR, fighter=fighter_component, ai=ai_component)
-                else:
-                    fighter_component = Fighter(hp=16, defense=1, power=4)
-                    ai_component = BasicMonster()
-                    monster = Entity(x=x, y=y, char='T', color=libtcod.darker_green, name='Troll', blocks=True,
-                                     render_order=RenderOrder.ACTOR, fighter=fighter_component, ai=ai_component)
+                    monster = Entity(x=x, y=y, char='k', color=libtcod.desaturated_green, name='Kobold Pack',
+                                     blocks=True, render_order=RenderOrder.ACTOR, party=party_component,
+                                     ai=ai_component)
+                # else:
+                #     fighter_component = Fighter(hp=16, defense=1, power=4)
+                #     ai_component = BasicMonster()
+                #     monster = Entity(x=x, y=y, char='T', color=libtcod.darker_green, name='Troll', blocks=True,
+                #                      render_order=RenderOrder.ACTOR, fighter=fighter_component, ai=ai_component)
                 
                 entities.append(monster)
     
