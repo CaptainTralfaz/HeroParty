@@ -14,7 +14,7 @@ def kill_player(player):
 
 def kill_monster(entity):
     death_message = Message(text='{} is dead!'.format(entity.name.capitalize()), color=libtcod.orange)
-    
+
     entity.char = '%'
     entity.color = libtcod.dark_red
     entity.blocks = False
@@ -22,5 +22,6 @@ def kill_monster(entity):
     entity.fighter = None
     entity.ai = None
     entity.name = 'Remains of {}'.format(entity.name)
+    # TODO Drop coins!
     
     return death_message
