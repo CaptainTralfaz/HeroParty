@@ -148,7 +148,7 @@ class GameMap:
             
             if not any([entity for entity in entities if entity.x == x and entity.y == y]):
                 if randint(0, 100) <= 100:
-                    party_component = Party()
+                    party_component = Party(coins=randint(50, 100))
                     member_1 = PartyMember(name="Brute", profession="Kobold", offensive_cd=5, defensive_cd=4,
                                            attack_type=1, cost=0)
                     member_2 = PartyMember(name="Rogue", profession="Kobold", offensive_cd=4, defensive_cd=5,

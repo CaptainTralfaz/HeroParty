@@ -19,8 +19,16 @@ def get_names_under_mouse(mouse, entities, fov_map):
     return names.capitalize()
 
 
+def get_party_under_mouse(mouse, entities, fov_map):
+    (x, y) = (mouse.cx, mouse.cy)
+    for entity in entities:
+        if entity.x == x and entity.y == y and libtcod.map_is_in_fov(m=fov_map, x=entity.x, y=entity.y) and entity.ai:
+            return entity
+    return None
+
+
 def render_bar(panel, x, y, total_width, name, value, bar_color, back_color):
-    bar_width = 15  # int(float(value) / maximum * total_width)
+    bar_width = total_width  # int(float(value) / maximum * total_width)
     
     libtcod.console_set_default_background(con=panel, col=back_color)
     libtcod.console_rect(panel, x, y, total_width, 1, False, libtcod.BKGND_SCREEN)
@@ -33,7 +41,15 @@ def render_bar(panel, x, y, total_width, name, value, bar_color, back_color):
     libtcod.console_print_ex(con=panel, x=1, y=y, flag=libtcod.BKGND_NONE,
                              alignment=libtcod.LEFT, fmt='[{}] {}'.format(y, name))
     libtcod.console_print_ex(con=panel, x=total_width, y=y, flag=libtcod.BKGND_NONE,
-                             alignment=libtcod.RIGHT, fmt='Cooldown:{}'.format(value))
+                             alignment=libtcod.RIGHT, fmt='CD:{}'.format(value))
+
+
+def render_member(panel, x, y, member, width, text_color):
+    libtcod.console_set_default_foreground(con=panel, col=text_color)
+    libtcod.console_print_ex(con=panel, x=x, y=y, flag=libtcod.BKGND_NONE, alignment=libtcod.LEFT,
+                             fmt='{}:{} {}'.format(y, member.profession, member.name))
+    libtcod.console_print_ex(con=panel, x=width, y=y, flag=libtcod.BKGND_NONE, alignment=libtcod.RIGHT,
+                             fmt='({})'.format(member.cooldown))
 
 
 def render_all(con, panel, entities, player, game_map, fov_map, fov_recompute, message_log, screen_width, screen_height,
@@ -102,16 +118,37 @@ def render_all(con, panel, entities, player, game_map, fov_map, fov_recompute, m
                                  fmt=message.text)
         y += 1
     
-    y = 1
-    for member in player.party.members:
-        render_bar(panel=panel, x=1, y=y, total_width=bar_width, name=member.name, value=member.cooldown,
-                   bar_color=libtcod.red, back_color=libtcod.darker_red)
-        y += 1
-    
+    # get entities under mouse
+    text = get_names_under_mouse(mouse=mouse, entities=entities, fov_map=fov_map)
+    if not text:
+        text = player.name
     libtcod.console_set_default_foreground(con=panel, col=libtcod.white)
-    libtcod.console_print_ex(con=panel, x=1, y=0, flag=libtcod.BKGND_NONE, alignment=libtcod.LEFT,
-                             fmt=get_names_under_mouse(mouse=mouse, entities=entities, fov_map=fov_map))
+    libtcod.console_print_ex(con=panel, x=1, y=0, flag=libtcod.BKGND_NONE, alignment=libtcod.LEFT, fmt=text)
     
+    target = get_party_under_mouse(mouse=mouse, entities=entities, fov_map=fov_map)
+    if not target:
+        target = player
+    
+    y = 1
+    x = 1
+    for member in target.party.members:
+        if member.cooldown > 0:
+            text_color = libtcod.red
+        else:
+            text_color = libtcod.white
+        render_member(panel, x, y, member, width=bar_width, text_color=text_color)
+        y += 1
+
+    # y = 1
+    # for member in player.party.members:
+    #     if member.cooldown > 0:
+    #         render_bar(panel=panel, x=1, y=y, total_width=bar_width, name=member.name, value=member.cooldown,
+    #                    bar_color=libtcod.darker_red, back_color=libtcod.darker_red)
+    #     else:
+    #         render_bar(panel=panel, x=1, y=y, total_width=bar_width, name=member.name, value=member.cooldown,
+    #                    bar_color=libtcod.darker_gray, back_color=libtcod.darker_gray)
+    #     y += 1
+        
     # noinspection PyTypeChecker
     libtcod.console_blit(src=panel, x=0, y=0, w=screen_width, h=panel_height, dst=0, xdst=0, ydst=panel_y)
 
