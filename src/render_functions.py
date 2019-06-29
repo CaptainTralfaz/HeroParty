@@ -11,27 +11,29 @@ class RenderOrder(IntEnum):
 
 def get_names_under_mouse(mouse, entities, fov_map):
     (x, y) = (mouse.cx, mouse.cy)
-
+    
     names = [entity.name for entity in entities
-             if entity.x == x and entity.y == y and libtcod.map_is_in_fov(fov_map, entity.x, entity.y)]
+             if entity.x == x and entity.y == y and libtcod.map_is_in_fov(m=fov_map, x=entity.x, y=entity.y)]
     names = ', '.join(names)
-
+    
     return names.capitalize()
 
 
-def render_bar(panel, x, y, total_width, name, value, maximum, bar_color, back_color):
-    bar_width = int(float(value) / maximum * total_width)
-
+def render_bar(panel, x, y, total_width, name, value, bar_color, back_color):
+    bar_width = 15  # int(float(value) / maximum * total_width)
+    
     libtcod.console_set_default_background(con=panel, col=back_color)
     libtcod.console_rect(panel, x, y, total_width, 1, False, libtcod.BKGND_SCREEN)
-
+    
     libtcod.console_set_default_background(con=panel, col=bar_color)
     if bar_width > 0:
         libtcod.console_rect(con=panel, x=x, y=y, w=bar_width, h=1, clr=False, flag=libtcod.BKGND_SCREEN)
-
+    
     libtcod.console_set_default_foreground(con=panel, col=libtcod.white)
-    libtcod.console_print_ex(con=panel, x=int(x + total_width / 2), y=y, flag=libtcod.BKGND_NONE,
-                             alignment=libtcod.CENTER, fmt='{}: {}/{}'.format(name, value, maximum))
+    libtcod.console_print_ex(con=panel, x=1, y=y, flag=libtcod.BKGND_NONE,
+                             alignment=libtcod.LEFT, fmt='[{}] {}'.format(y, name))
+    libtcod.console_print_ex(con=panel, x=total_width, y=y, flag=libtcod.BKGND_NONE,
+                             alignment=libtcod.RIGHT, fmt='Cooldown:{}'.format(value))
 
 
 def render_all(con, panel, entities, player, game_map, fov_map, fov_recompute, message_log, screen_width, screen_height,
@@ -39,13 +41,19 @@ def render_all(con, panel, entities, player, game_map, fov_map, fov_recompute, m
     """
     Draw all entities in the list
     :param con: destination drawing console
+    :param panel: drawing surface for messages, etc.
     :param entities: list of Entity objects
     :param player: the player Entity object
     :param game_map: GameMap object
     :param fov_map: map of field of view
     :param fov_recompute: boolean
+    :param message_log: MessageLog object containing list of messages
     :param screen_width: int width of screen
     :param screen_height: int height of screen
+    :param bar_width: int width of bar for panel
+    :param panel_height: int height of panel
+    :param panel_y: int location of panel
+    :param mouse: tuple mouse location
     :param colors: dict of color tuples
     :return: None
     """
@@ -73,7 +81,7 @@ def render_all(con, panel, entities, player, game_map, fov_map, fov_recompute, m
                         libtcod.console_set_char(con=con, x=x, y=y, c=' ')
                         libtcod.console_set_char_background(con=con, x=x, y=y, col=colors.get('dark_ground'),
                                                             flag=libtcod.BKGND_SET)
-
+    
     entities_in_render_order = sorted(entities, key=lambda z: z.render_order.value)
     
     for entity in entities_in_render_order:
@@ -81,26 +89,32 @@ def render_all(con, panel, entities, player, game_map, fov_map, fov_recompute, m
     
     # noinspection PyTypeChecker
     libtcod.console_blit(src=con, x=0, y=0, w=screen_width, h=screen_height, dst=0, xdst=0, ydst=0)
-
-    libtcod.console_set_default_background(panel, libtcod.black)
-    libtcod.console_clear(panel)
+    
+    libtcod.console_set_default_background(con=panel, col=libtcod.darker_gray)
+    libtcod.console_clear(con=panel)
     
     # Print the game messages, one line at a time
     y = 1
     for message in message_log.messages:
-        libtcod.console_set_default_foreground(panel, message.color)
-        libtcod.console_print_ex(panel, message_log.x, y, libtcod.BKGND_NONE, libtcod.LEFT, message.text)
+        # libtcod.console_set_key_color(panel, libtcod.gray)
+        libtcod.console_set_default_foreground(con=panel, col=message.color)
+        libtcod.console_print_ex(con=panel, x=message_log.x, y=y, flag=libtcod.BKGND_NONE, alignment=libtcod.LEFT,
+                                 fmt=message.text)
         y += 1
     
-    render_bar(panel, 1, 1, bar_width, 'HP', player.fighter.hp, player.fighter.max_hp,
-               libtcod.light_red, libtcod.darker_red)
-
-    libtcod.console_set_default_foreground(panel, libtcod.light_gray)
-    libtcod.console_print_ex(panel, 1, 0, libtcod.BKGND_NONE, libtcod.LEFT,
-                             get_names_under_mouse(mouse, entities, fov_map))
-
-    libtcod.console_blit(panel, 0, 0, screen_width, panel_height, 0, 0, panel_y)
+    y = 1
+    for member in player.party.members:
+        render_bar(panel=panel, x=1, y=y, total_width=bar_width, name=member.name, value=member.cooldown,
+                   bar_color=libtcod.red, back_color=libtcod.darker_red)
+        y += 1
     
+    libtcod.console_set_default_foreground(con=panel, col=libtcod.white)
+    libtcod.console_print_ex(con=panel, x=1, y=0, flag=libtcod.BKGND_NONE, alignment=libtcod.LEFT,
+                             fmt=get_names_under_mouse(mouse=mouse, entities=entities, fov_map=fov_map))
+    
+    # noinspection PyTypeChecker
+    libtcod.console_blit(src=panel, x=0, y=0, w=screen_width, h=panel_height, dst=0, xdst=0, ydst=panel_y)
+
 
 def clear_all(con, entities):
     """

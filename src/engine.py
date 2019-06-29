@@ -1,14 +1,15 @@
 import tcod as libtcod
 
-from src.components.fighter import Fighter
 from src.death_functions import kill_monster, kill_player
 from src.entity import Entity, get_blocking_entities_at_location
 from src.fov_functions import initialize_fov, recompute_fov
+from src.game_messages import MessageLog, Message
 from src.game_states import GameStates
 from src.input_handlers import handle_keys
 from src.map_objects.game_map import GameMap
 from src.render_functions import render_all, clear_all, RenderOrder
-from src.game_messages import MessageLog
+from src.components.party import Party, PartyMember
+
 
 def main():
     screen_width = 80
@@ -17,11 +18,11 @@ def main():
     bar_width = 20
     panel_height = 7
     panel_y = screen_height - panel_height
-
+    
     message_x = bar_width + 2
     message_width = screen_width - bar_width - 2
     message_height = panel_height - 1
-
+    
     map_width = 80
     map_height = 43
     
@@ -39,9 +40,16 @@ def main():
         'light_ground': libtcod.Color(200, 180, 50)
     }
     
-    fighter_component = Fighter(hp=30, defense=2, power=5)
-    player = Entity(x=0, y=0, char='@', color=libtcod.white, name='Player', blocks=True, render_order=RenderOrder.ACTOR,
-                    fighter=fighter_component)
+    party_component = Party()
+    member_1 = PartyMember(name="Bill", profession="Soldier", offensive_cd=4, defensive_cd=4, attack_type=1, cost=5)
+    member_2 = PartyMember(name="John", profession="Archer", offensive_cd=5, defensive_cd=5, attack_type=2, cost=4)
+    member_3 = PartyMember(name="Sam", profession="Defender", offensive_cd=5, defensive_cd=3, attack_type=3, cost=5)
+    party_component.add_member(member_1)
+    party_component.add_member(member_2)
+    party_component.add_member(member_3)
+    player = Entity(x=0, y=0, char='@', color=libtcod.white, name='Hero Party', blocks=True,
+                    render_order=RenderOrder.ACTOR,
+                    party=party_component)
     entities = [player]
     
     libtcod.console_set_custom_font(fontFile='images/arial10x10.png',
@@ -60,8 +68,8 @@ def main():
     fov_recompute = True
     fov_map = initialize_fov(game_map=game_map)
     
-    message_log = MessageLog(message_x, message_width, message_height)
-
+    message_log = MessageLog(x=message_x, width=message_width, height=message_height)
+    
     key = libtcod.Key()
     mouse = libtcod.Mouse()
     
@@ -82,8 +90,11 @@ def main():
         
         clear_all(con=con, entities=entities)
         
+        # --------- PLAYER TURN GET INPUTS -------------
         action = handle_keys(key=key)
-        
+
+        # --------- PLAYER TURN PROCESS INPUTS -------------
+        no_action = False
         move = action.get('move')
         exit_game = action.get('exit_game')
         fullscreen = action.get('fullscreen')
@@ -102,14 +113,18 @@ def main():
             if not game_map.is_blocked(x=destination_x, y=destination_y):
                 target = get_blocking_entities_at_location(entities=entities, x=destination_x, y=destination_y)
                 
-                if target:
-                    attack_results = player.fighter.attack(target=target)
+                if target and player.party.random_member_no_cooldown():
+                    attack_results = player.party.random_member_no_cooldown().attack(target=target)
                     player_turn_results.extend(attack_results)
+                elif target:
+                    player_turn_results.append({'message': Message("Unable to attack")})
+                    no_action = True
                 else:
                     player.move(dx=dx, dy=dy)
                     fov_recompute = True
                 
-                game_state = GameStates.ENEMY_TURN
+                if not no_action:
+                    game_state = GameStates.ENEMY_TURN
         
         if exit_game:
             return True
@@ -117,21 +132,23 @@ def main():
         if fullscreen:
             libtcod.console_set_fullscreen(fullscreen=not libtcod.console_is_fullscreen())
         
+        # --------- PLAYER TURN PROCESS RESULTS -------------
         for result in player_turn_results:
             message = result.get('message')
             dead_entity = result.get('dead')
             
             if message:
-                message_log.add_message(message)
+                message_log.add_message(message=message)
             
             if dead_entity:
                 if dead_entity == player:
                     message, game_state = kill_player(dead_entity)
                 else:
                     message = kill_monster(dead_entity)
+                
+                message_log.add_message(message=message)
 
-                message_log.add_message(message)
-        
+        # --------- ENEMY TURN GET INPUT -------------
         if game_state == GameStates.ENEMY_TURN:
             entities_in_distance_order = sorted(entities, key=lambda z: z.distance_to(player))
             
@@ -139,20 +156,21 @@ def main():
                 if entity.ai:
                     enemy_turn_results = entity.ai.take_turn(target=player, fov_map=fov_map, game_map=game_map,
                                                              entities=entities)
+                    # --------- ENEMY TURN PROCESS RESULTS -------------
                     for result in enemy_turn_results:
                         message = result.get('message')
                         dead_entity = result.get('dead')
                         
                         if message:
-                            message_log.add_message(message)
+                            message_log.add_message(message=message)
                         
                         if dead_entity:
                             if dead_entity == player:
                                 message, game_state = kill_player(player=dead_entity)
                             else:
-                                message = kill_monster(dead_entity)
-
-                            message_log.add_message(message)
+                                message = kill_monster(entity=dead_entity)
+                            
+                            message_log.add_message(message=message)
                             
                             if game_state == GameStates.PLAYER_DEAD:
                                 break
@@ -162,6 +180,9 @@ def main():
             
             else:
                 game_state = GameStates.PLAYERS_TURN
+                for entity in entities:
+                    if entity.party:
+                        entity.party.tick_all()
 
 
 if __name__ == '__main__':

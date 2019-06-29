@@ -4,7 +4,8 @@ from src.render_functions import RenderOrder
 
 
 class Entity:
-    def __init__(self, x, y, char, color, name, blocks=False, render_order=RenderOrder.CORPSE, fighter=None, ai=None):
+    def __init__(self, x, y, char, color, name, blocks=False, render_order=RenderOrder.CORPSE, party=None,
+                 fighter=None, ai=None):
         """
         A generic object to represent players, enemies, items, etc.
         :param x: horizontal position on map
@@ -13,6 +14,11 @@ class Entity:
         :param color: color of the character
         :param name: string name of the Entity
         :param blocks: True if Entity blocks movement of other Entities
+        :param render_order: enum render order for entities
+        :param party: party component
+        :param fighter: TODO: deprecate fighter component
+        :param ai: artificial intelligence (AI) component
+
         """
         self.x = x
         self.y = y
@@ -21,9 +27,13 @@ class Entity:
         self.name = name
         self.blocks = blocks
         self.render_order = render_order
+        self.party = party
         self.fighter = fighter
         self.ai = ai
         
+        if self.party:
+            self.party.owner = self
+            
         if self.fighter:
             self.fighter.owner = self
         
@@ -96,8 +106,8 @@ class Entity:
             #  (for example another monster blocks a corridor)
             # it will still try to move towards the player (closer to the corridor opening)
             self.move_towards(target.x, target.y, game_map, entities)
-            
-            # Delete the path to free memory
+        
+        # Delete the path to free memory
         libtcod.path_delete(my_path)
 
 
@@ -106,7 +116,7 @@ def get_blocking_entities_at_location(entities, x, y):
     Returns blocking entity in a location
     :param entities: list of Entity objects
     :param x: horizontal location
-    :param x: vertical location
+    :param y: vertical location
     :return: blocking Entity object in destination (x, y) or None if no Entity object in destination block movement
     """
     for entity in entities:
