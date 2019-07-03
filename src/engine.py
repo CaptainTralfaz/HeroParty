@@ -22,13 +22,23 @@ def main():
     message_x = bar_width + 2
     message_width = screen_width - bar_width - 2
     message_height = panel_height - 1
-    
+
     map_width = 80
     map_height = 43
-    
-    room_max_size = 10
-    room_min_size = 6
-    max_rooms = 30
+
+    # Conway's Game Of Life variables
+    # 3 6 5 6 3 - good choice
+    # 3 6 5 7 3 - another good choice
+    # 3 5 5 6 4 - larger, more open
+    survive_min = 3
+    survive_max = 6
+    resurrect_min = 6
+    resurrect_max = 8
+    iterations = 4
+
+    # zone variables
+    zone_seed_min_distance = 10
+    min_cavern_size = 15
     max_monsters_per_room = 3
     
     fov_radius = 8
@@ -61,8 +71,10 @@ def main():
     panel = libtcod.console_new(w=screen_width, h=panel_height)
     
     game_map = GameMap(width=map_width, height=map_height)
-    game_map.make_map(max_rooms=max_rooms, room_min_size=room_min_size, room_max_size=room_max_size,
-                      map_width=map_width, map_height=map_height, player=player, entities=entities,
+    game_map.make_map(survive_min=survive_min, survive_max=survive_max, resurrect_min=resurrect_min,
+                      resurrect_max=resurrect_max, iterations=iterations,
+                      zone_seed_min_distance=zone_seed_min_distance,
+                      min_cavern_size=min_cavern_size, player=player, entities=entities,
                       max_monsters_per_room=max_monsters_per_room)
     
     fov_recompute = True
