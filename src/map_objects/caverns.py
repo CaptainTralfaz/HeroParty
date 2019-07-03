@@ -504,5 +504,6 @@ def create_caverns(map_width, map_height, survive_min, survive_max, resurrect_mi
     
     # connect zones
     corridors = connect_caverns_closest(grid=life_map, caverns=caverns, min_cavern_size=min_cavern_size)
-
+    carve_tiles(grid=life_map, tiles=corridors)
+    
     return life_map, zones, corridors
