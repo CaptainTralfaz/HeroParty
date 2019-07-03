@@ -12,5 +12,5 @@ def initialize_fov(game_map):
     return fov_map
 
 
-def recompute_fov(fov_map, x, y, radius, light_walls=True, algorithm=0):
+def recompute_fov(fov_map, x, y, radius, light_walls=True, algorithm=0):  # 1 = diamond algorithm - it's orthogonal
     libtcod.map_compute_fov(m=fov_map, x=x, y=y, radius=radius, light_walls=light_walls, algo=algorithm)
