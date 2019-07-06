@@ -18,9 +18,18 @@ class Party:
         """
         Append a PartyMember to the list
         :param party_member: PartyMember object to add to the party list
-        :return: None
+        :return: results and message
         """
-        self.members.append(party_member)
+        if len(self.members) < 6:
+            self.members.append(party_member)
+            message = Message('{} {} added to party'.format(party_member.profession, party_member.name),
+                              color=libtcod.lighter_blue)
+            results = True
+        else:
+            message = Message('Not enough space for new members!'.format(party_member.profession, party_member.name),
+                              color=libtcod.lighter_blue)
+            results = False
+        return message, results
     
     def random_member(self):
         """
@@ -28,7 +37,7 @@ class Party:
         :return: PartyMember object
         """
         return choice(self.members)
-
+    
     def kill_member(self, party_member):
         """
         Kill a party member: Remove a PartyMember from the list
@@ -36,13 +45,13 @@ class Party:
         :return: results of check for death
         """
         results = []
-    
+        
         self.members.remove(party_member)
-    
+        
         if not self.members:
             results.extend({'dead': self.owner})
         return results
-
+    
     def remove_member(self, party_member):
         """
         Remove a PartyMember from the list
@@ -50,16 +59,16 @@ class Party:
         :return: results of check for death
         """
         results = []
-    
+        
         self.members.remove(party_member)
         results.append({'message': Message('{} {} removed from {}'.format(party_member.profession,
                                                                           party_member.name,
                                                                           self.owner.name),
-                                           color=libtcod.orange)})
+                                           color=libtcod.lighter_blue)})
         if not self.members:
             results.append({'dead': self.owner})
         return results
-
+    
     def random_member_no_cooldown(self):
         """
         Selects a random PartyMember from the list that is NOT on cooldown
@@ -70,7 +79,7 @@ class Party:
             return member
         except IndexError:
             return None
-            
+    
     def tick_all(self, amount=1):
         """
         Iterate through all party members in list, ticking a turn off of their cooldown counter
@@ -87,6 +96,7 @@ class Party:
         :return: None
         """
         self.coins += amount
+        return Message(text='Hero Party found {} coins'.format(amount))
     
     def pay_members(self):
         """
@@ -117,14 +127,6 @@ class Party:
         for member in self.members:
             total_cost += member.get_cost()
         return total_cost
-    
-    # def shortest_range(self):
-    #     """
-    #     Selects the party member with the shortest valid attack range (Used mostly for default bump attacks)
-    #     :return: PartyMember with the shortest attack range
-    #     """
-    #     for member in self.members:
-    #     member.attack.range
 
 
 class PartyMember:
@@ -172,7 +174,7 @@ class PartyMember:
         :return: None
         """
         self.cooldown = self.defensive_cd + modifier
-
+    
     def attack(self, target):
         """
         Attack random member of enemy party not on cooldown.
@@ -183,7 +185,7 @@ class PartyMember:
         """
         results = []
         self.cooldown = self.offensive_cd
-
+        
         # pick random member off cooldown
         member = target.party.random_member_no_cooldown()
         if member:
@@ -199,6 +201,5 @@ class PartyMember:
                                                libtcod.orange)})
             # removes member, checks for death
             results.extend(target.party.remove_member(member))
-            
+        
         return results
-
