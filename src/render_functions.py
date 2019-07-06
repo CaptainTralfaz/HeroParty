@@ -81,6 +81,8 @@ def render_all(con, panel, entities, player, game_map, fov_map, fov_recompute, m
                 
                 if visible:
                     if wall:
+                        libtcod.console_set_char_foreground(con=con, x=x, y=y, col=colors.get('light_ground'))
+                        libtcod.console_set_char(con=con, x=x, y=y, c='-')
                         libtcod.console_set_char_background(con=con, x=x, y=y, col=colors.get('light_wall'),
                                                             flag=libtcod.BKGND_SET)
                     else:
@@ -91,6 +93,7 @@ def render_all(con, panel, entities, player, game_map, fov_map, fov_recompute, m
                     game_map.tiles[x][y].explored = True
                 elif game_map.tiles[x][y].explored:
                     if wall:
+                        libtcod.console_set_char(con=con, x=x, y=y, c=' ')
                         libtcod.console_set_char_background(con=con, x=x, y=y, col=colors.get('dark_wall'),
                                                             flag=libtcod.BKGND_SET)
                     else:
@@ -119,11 +122,16 @@ def render_all(con, panel, entities, player, game_map, fov_map, fov_recompute, m
         y += 1
     
     # get entities under mouse
+    text2 = None
     text = get_names_under_mouse(mouse=mouse, entities=entities, fov_map=fov_map)
     if not text:
         text = player.name
+        text2 = 'Gold: {}'.format(player.party.coins)
     libtcod.console_set_default_foreground(con=panel, col=libtcod.white)
     libtcod.console_print_ex(con=panel, x=1, y=0, flag=libtcod.BKGND_NONE, alignment=libtcod.LEFT, fmt=text)
+    if text2:
+        libtcod.console_print_ex(con=panel, x=bar_width, y=0, flag=libtcod.BKGND_NONE, alignment=libtcod.RIGHT,
+                                 fmt=text2)
     
     target = get_party_under_mouse(mouse=mouse, entities=entities, fov_map=fov_map)
     if not target:
@@ -138,7 +146,7 @@ def render_all(con, panel, entities, player, game_map, fov_map, fov_recompute, m
             text_color = libtcod.white
         render_member(panel, x, y, member, width=bar_width, text_color=text_color)
         y += 1
-
+    
     # y = 1
     # for member in player.party.members:
     #     if member.cooldown > 0:
@@ -148,7 +156,7 @@ def render_all(con, panel, entities, player, game_map, fov_map, fov_recompute, m
     #         render_bar(panel=panel, x=1, y=y, total_width=bar_width, name=member.name, value=member.cooldown,
     #                    bar_color=libtcod.darker_gray, back_color=libtcod.darker_gray)
     #     y += 1
-        
+    
     # noinspection PyTypeChecker
     libtcod.console_blit(src=panel, x=0, y=0, w=screen_width, h=panel_height, dst=0, xdst=0, ydst=panel_y)
 

@@ -9,19 +9,17 @@ def kill_player(player):
     player.char = '%'
     player.color = libtcod.dark_red
     
-    return Message(text='You died!', color=libtcod.red), GameStates.PLAYER_DEAD
+    return Message(text='Your party has been slain!', color=libtcod.red), GameStates.PLAYER_DEAD
 
 
 def kill_monster(entity):
     death_message = Message(text='{} is dead!'.format(entity.name.capitalize()), color=libtcod.orange)
-
+    
     entity.char = '%'
     entity.color = libtcod.dark_red
     entity.blocks = False
     entity.render_order = RenderOrder.CORPSE
-    entity.fighter = None
     entity.ai = None
     entity.name = 'Remains of {}'.format(entity.name)
-    # TODO Drop coins!
     
     return death_message
