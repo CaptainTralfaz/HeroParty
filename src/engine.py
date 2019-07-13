@@ -90,7 +90,7 @@ def main():
     key = libtcod.Key()
     mouse = libtcod.Mouse()
     
-    game_state = GameStates.PLAYERS_TURN
+    game_state = GameStates.PLAYER_TURN
     
     while not libtcod.console_is_window_closed():
         libtcod.sys_check_for_event(mask=libtcod.EVENT_KEY_PRESS | libtcod.EVENT_MOUSE, k=key, m=mouse)
@@ -108,7 +108,7 @@ def main():
         clear_all(con=con, entities=entities)
         
         # --------- PLAYER TURN: GET INPUTS -------------
-        action = handle_keys(key=key)
+        action = handle_keys(key=key, game_state=game_state)
         
         no_action = False
         move = action.get('move')
@@ -119,7 +119,7 @@ def main():
         # --------- PLAYER TURN: PROCESS INPUTS -------------
         player_turn_results = []
         
-        if auto and GameStates.PLAYERS_TURN:
+        if auto and GameStates.PLAYER_TURN:
             for entity in entities:
                 if not entity.ai and not entity.blocks and entity.party.members \
                         and entity.x == player.x and entity.y == player.y:
@@ -130,7 +130,7 @@ def main():
             else:  # Wait
                 game_state = GameStates.ENEMY_TURN
         
-        if move and game_state == GameStates.PLAYERS_TURN:
+        if move and game_state == GameStates.PLAYER_TURN:
             dx, dy = move
             destination_x = player.x + dx
             destination_y = player.y + dy
@@ -219,7 +219,7 @@ def main():
                         break
             
             else:
-                game_state = GameStates.PLAYERS_TURN
+                game_state = GameStates.PLAYER_TURN
                 for entity in entities:
                     if entity.party:
                         entity.party.tick_all()
