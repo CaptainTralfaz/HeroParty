@@ -71,7 +71,7 @@ class GameMap:
                                      ai=ai_component)
                 else:
                     hero_component = PartyMember(name="Ted", profession="Spearman", offensive_cd=5, defensive_cd=5,
-                                                 attack_type={'melee': 2}, cost=5)
+                                                 attack_type={'melee': 1}, cost=5)
                     party_component = Party(coins=0)
                     party_component.add_member(hero_component)
                     monster = Entity(x=x, y=y, char='@', color=libtcod.dark_orange, name='Hero', blocks=False,

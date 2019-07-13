@@ -5,7 +5,7 @@ from src.render_functions import RenderOrder
 
 class Entity:
     def __init__(self, x, y, char, color, name, blocks=False, render_order=RenderOrder.CORPSE, party=None,
-                 fighter=None, ai=None):
+                 ai=None):
         """
         A generic object to represent players, enemies, items, etc.
         :param x: horizontal position on map
@@ -16,7 +16,6 @@ class Entity:
         :param blocks: True if Entity blocks movement of other Entities
         :param render_order: enum render order for entities
         :param party: party component
-        :param fighter: TODO: deprecate fighter component
         :param ai: artificial intelligence (AI) component
 
         """
@@ -28,15 +27,11 @@ class Entity:
         self.blocks = blocks
         self.render_order = render_order
         self.party = party
-        self.fighter = fighter
         self.ai = ai
         
         if self.party:
             self.party.owner = self
             
-        if self.fighter:
-            self.fighter.owner = self
-        
         if self.ai:
             self.ai.owner = self
     

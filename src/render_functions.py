@@ -16,7 +16,7 @@ def get_names_under_mouse(mouse, entities, fov_map):
              if entity.x == x and entity.y == y and libtcod.map_is_in_fov(m=fov_map, x=entity.x, y=entity.y)]
     names = ', '.join(names)
     
-    return names.capitalize()
+    return names
 
 
 def get_party_under_mouse(mouse, entities, fov_map):

@@ -17,11 +17,11 @@ class LifeMap:
         """
         self.width = map_width
         self.height = map_height
-        self.alive = [[True for y in range(0, self.height)] for x in range(0, self.width)]
+        self.alive = [[True for y in range(self.height)] for x in range(self.width)]
     
     def make_random(self):
-        for x in range(1, self.width - 2):
-            for y in range(1, self.height - 2):
+        for x in range(1, self.width - 1):
+            for y in range(1, self.height - 1):
                 if randint(0, 1):
                     self.alive[x][y] = False
 
@@ -331,7 +331,7 @@ def explore_walls_iterative_ortho(grid, tile_set):
         x, y = current
         neighbors = []
         for (dx, dy) in ortho_directions:
-            if (x + dx) in range(0, grid.width) and (y + dy) in range(0, grid.height):
+            if (x + dx) in range(grid.width) and (y + dy) in range(grid.height):
                 neighbors.append((x + dx, y + dy))
         for neighbor in neighbors:
             (x, y) = neighbor
