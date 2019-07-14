@@ -44,16 +44,17 @@ def render_bar(panel, x, y, total_width, name, value, bar_color, back_color):
                              alignment=libtcod.RIGHT, fmt='CD:{}'.format(value))
 
 
-def render_member(panel, x, y, member, width, text_color):
+def render_member(panel, x, y, member, width, text_color, bkg_color):
     libtcod.console_set_default_foreground(con=panel, col=text_color)
-    libtcod.console_print_ex(con=panel, x=x, y=y, flag=libtcod.BKGND_NONE, alignment=libtcod.LEFT,
+    libtcod.console_set_default_background(con=panel, col=bkg_color)
+    libtcod.console_print_ex(con=panel, x=x, y=y, flag=libtcod.BKGND_SET, alignment=libtcod.LEFT,
                              fmt='{}:{} {}'.format(y, member.profession, member.name))
     libtcod.console_print_ex(con=panel, x=width, y=y, flag=libtcod.BKGND_NONE, alignment=libtcod.RIGHT,
                              fmt='({})'.format(member.cooldown))
 
 
 def render_all(con, panel, entities, player, game_map, fov_map, fov_recompute, message_log, screen_width, screen_height,
-               bar_width, panel_height, panel_y, mouse, colors):
+               acting_member, bar_width, panel_height, panel_y, mouse, colors):
     """
     Draw all entities in the list
     :param con: destination drawing console
@@ -66,6 +67,7 @@ def render_all(con, panel, entities, player, game_map, fov_map, fov_recompute, m
     :param message_log: MessageLog object containing list of messages
     :param screen_width: int width of screen
     :param screen_height: int height of screen
+    :param acting_member: int selected member of party
     :param bar_width: int width of bar for panel
     :param panel_height: int height of panel
     :param panel_y: int location of panel
@@ -144,7 +146,14 @@ def render_all(con, panel, entities, player, game_map, fov_map, fov_recompute, m
             text_color = libtcod.red
         else:
             text_color = libtcod.white
-        render_member(panel, x, y, member, width=bar_width, text_color=text_color)
+        if acting_member and member == target.party.members[acting_member - 1]:
+            bkg_color = libtcod.light_gray
+        else:
+            bkg_color = libtcod.darker_gray
+        
+        # if target == player and member == selected_member:
+        
+        render_member(panel, x, y, member, width=bar_width, text_color=text_color, bkg_color=bkg_color)
         y += 1
     
     # y = 1
