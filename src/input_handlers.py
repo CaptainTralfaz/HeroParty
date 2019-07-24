@@ -33,8 +33,6 @@ def handle_keys_targeting(key):
         return {'act_dir': (-1, 0)}
     elif key.vk == libtcod.KEY_RIGHT:
         return {'act_dir': (1, 0)}
-    elif key.vk == libtcod.KEY_SPACE:
-        return {'auto': True}
     elif key.vk == libtcod.KEY_1:
         return {'member': 1}
     elif key.vk == libtcod.KEY_2:
