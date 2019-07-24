@@ -1,12 +1,14 @@
 import tcod as libtcod
 
+from src.attack_types import get_target_tiles
 from src.components.party import Party, PartyMember
 from src.death_functions import kill_monster, kill_player
 from src.entity import Entity, get_blocking_entities_at_location
 from src.fov_functions import initialize_fov, recompute_fov
 from src.game_messages import MessageLog, Message
 from src.game_states import GameStates
-from src.input_handlers import handle_keys
+from src.input_handlers import handle_keys, handle_mouse
+from src.map_objects.caverns import distance_to
 from src.map_objects.game_map import GameMap
 from src.render_functions import render_all, clear_all, RenderOrder
 
@@ -34,7 +36,7 @@ def main():
     # 3 7 5 6 4 - small, windy, lots of caverns
     survive_min = 3
     survive_max = 7
-    resurrect_min = 5
+    resurrect_min = 6
     resurrect_max = 6
     iterations = 4
     
@@ -54,14 +56,17 @@ def main():
     
     party_component = Party()
     member_1 = PartyMember(name="Bill", profession="Soldier", offensive_cd=4, defensive_cd=4,
-                           attack_type={'melee': 1}, cost=5)
+                           attack_type={'line': 1}, cost=5)
     member_2 = PartyMember(name="John", profession="Archer", offensive_cd=5, defensive_cd=5,
-                           attack_type={'ranged': 4}, cost=4)
+                           attack_type={'direct': 4}, cost=4)
     member_3 = PartyMember(name="Sam", profession="Defender", offensive_cd=5, defensive_cd=3,
-                           attack_type={'melee': 1}, cost=5)
+                           attack_type={'line': 1}, cost=5)
+    member_4 = PartyMember(name="Ivan", profession="Ice Mage", offensive_cd=6, defensive_cd=6,
+                           attack_type={'cone': 3}, cost=8)
     party_component.add_member(member_1)
     party_component.add_member(member_2)
     party_component.add_member(member_3)
+    party_component.add_member(member_4)
     player = Entity(x=0, y=0, char='@', color=libtcod.white, name='Hero Party', blocks=True,
                     render_order=RenderOrder.ACTOR,
                     party=party_component)
@@ -91,6 +96,8 @@ def main():
     mouse = libtcod.Mouse()
     
     game_state = GameStates.PLAYER_TURN
+    previous_member = None
+    target_tiles = None
     
     while not libtcod.console_is_window_closed():
         libtcod.sys_check_for_event(mask=libtcod.EVENT_KEY_PRESS | libtcod.EVENT_MOUSE, k=key, m=mouse)
@@ -100,7 +107,7 @@ def main():
         
         render_all(con=con, panel=panel, entities=entities, player=player, game_map=game_map, fov_map=fov_map,
                    fov_recompute=fov_recompute, message_log=message_log, screen_width=screen_width,
-                   screen_height=screen_height,
+                   screen_height=screen_height, acting_member=previous_member, target_tiles=target_tiles,
                    bar_width=bar_width, panel_height=panel_height, panel_y=panel_y, mouse=mouse, colors=colors)
         
         libtcod.console_flush()
@@ -109,16 +116,22 @@ def main():
         
         # --------- PLAYER TURN: GET INPUTS -------------
         action = handle_keys(key=key, game_state=game_state)
+        mouse_action = handle_mouse(mouse)
         
-        no_action = False
         move = action.get('move')
         exit_game = action.get('exit_game')
         fullscreen = action.get('fullscreen')
         auto = action.get('auto')
+        selected_member = action.get('member')
+        act_dir = action.get('act_dir')
+        
+        left_click = mouse_action.get('left_click')
+        right_click = mouse_action.get('right_click')
         
         # --------- PLAYER TURN: PROCESS INPUTS -------------
         player_turn_results = []
         
+        # AUTOMATIC -----------------------------------------
         if auto and GameStates.PLAYER_TURN:
             for entity in entities:
                 if not entity.ai and not entity.blocks and entity.party.members \
@@ -130,27 +143,65 @@ def main():
             else:  # Wait
                 game_state = GameStates.ENEMY_TURN
         
+        # MOVEMENT ------------------------------------------
         if move and game_state == GameStates.PLAYER_TURN:
             dx, dy = move
             destination_x = player.x + dx
             destination_y = player.y + dy
             
-            # TODO remove this attack style in the future - replace with action keys
-            if not game_map.is_blocked(x=destination_x, y=destination_y):
-                target = get_blocking_entities_at_location(entities=entities, x=destination_x, y=destination_y)
-                
-                if target and player.party.random_member_no_cooldown():
-                    attack_results = player.party.random_member_no_cooldown().attack(target=target)
+            if not game_map.is_blocked(x=destination_x, y=destination_y) \
+                    and not get_blocking_entities_at_location(entities=entities, x=destination_x, y=destination_y):
+                player.move(dx=dx, dy=dy)
+                fov_recompute = True
+                game_state = GameStates.ENEMY_TURN
+        
+        # SELECTED MEMBER -----------------------------------
+        if selected_member and selected_member <= len(player.party.members) and \
+                player.party.members[selected_member - 1].cooldown < 1:
+            if not previous_member:
+                previous_member = selected_member
+                target_tiles = get_target_tiles(entity=player, member=previous_member - 1, game_map=game_map,
+                                                fov_map=fov_map)
+                player_turn_results.append({'message': Message("Direction?")})
+                game_state = GameStates.TARGETING
+            
+            elif previous_member == selected_member:
+                previous_member = None
+                target_tiles = None
+                game_state = GameStates.PLAYER_TURN
+        
+        if act_dir and previous_member and game_state == GameStates.TARGETING:
+            attack_tiles = get_target_tiles(entity=player, member=previous_member - 1, game_map=game_map,
+                                            fov_map=fov_map, attack_dir=[act_dir])
+            targets = [entity for entity in entities if (entity.x, entity.y) in attack_tiles and entity.ai]
+            
+            # TODO this code should really be somewhere else...
+            if targets:
+                if player.party.members[previous_member - 1].attack_type.get('line'):
+                    for target in targets:
+                        attack_results = player.party.members[previous_member - 1].attack(target=target)
+                        player_turn_results.extend(attack_results)
+                elif player.party.members[previous_member - 1].attack_type.get('direct'):
+                    closest = targets[0]
+                    closest_dist = distance_to(player.x, closest.x, player.y, closest.y)
+                    targets.remove(closest)
+                    for target in targets:
+                        distance = distance_to(player.x, player.y, target.x, target.y)
+                        if distance < closest_dist:
+                            closest = target
+                            closest_dist = distance
+                    attack_results = player.party.members[previous_member - 1].attack(target=closest)
                     player_turn_results.extend(attack_results)
-                elif target:
-                    player_turn_results.append({'message': Message("Unable to attack")})
-                    no_action = True
-                else:
-                    player.move(dx=dx, dy=dy)
-                    fov_recompute = True
-                
-                if not no_action:
-                    game_state = GameStates.ENEMY_TURN
+                elif player.party.members[previous_member - 1].attack_type.get('cone'):
+                    for target in targets:
+                        attack_results = player.party.members[previous_member - 1].attack(target=target)
+                        player_turn_results.extend(attack_results)
+            
+            else:
+                player_turn_results.append({'message': Message("Attack hits nothing")})
+            previous_member = None
+            target_tiles = None
+            game_state = GameStates.ENEMY_TURN
         
         if exit_game:
             return True

@@ -26,15 +26,13 @@ def handle_mouse(mouse):
 
 def handle_keys_targeting(key):
     if key.vk == libtcod.KEY_UP:
-        return {'direction': (0, -1)}
+        return {'act_dir': (0, -1)}
     elif key.vk == libtcod.KEY_DOWN:
-        return {'direction': (0, 1)}
+        return {'act_dir': (0, 1)}
     elif key.vk == libtcod.KEY_LEFT:
-        return {'direction': (-1, 0)}
+        return {'act_dir': (-1, 0)}
     elif key.vk == libtcod.KEY_RIGHT:
-        return {'direction': (1, 0)}
-    elif key.vk == libtcod.KEY_SPACE:
-        return {'auto': True}
+        return {'act_dir': (1, 0)}
     elif key.vk == libtcod.KEY_1:
         return {'member': 1}
     elif key.vk == libtcod.KEY_2:

@@ -44,16 +44,17 @@ def render_bar(panel, x, y, total_width, name, value, bar_color, back_color):
                              alignment=libtcod.RIGHT, fmt='CD:{}'.format(value))
 
 
-def render_member(panel, x, y, member, width, text_color):
+def render_member(panel, x, y, member, width, text_color, bkg_color):
     libtcod.console_set_default_foreground(con=panel, col=text_color)
-    libtcod.console_print_ex(con=panel, x=x, y=y, flag=libtcod.BKGND_NONE, alignment=libtcod.LEFT,
+    libtcod.console_set_default_background(con=panel, col=bkg_color)
+    libtcod.console_print_ex(con=panel, x=x, y=y, flag=libtcod.BKGND_SET, alignment=libtcod.LEFT,
                              fmt='{}:{} {}'.format(y, member.profession, member.name))
     libtcod.console_print_ex(con=panel, x=width, y=y, flag=libtcod.BKGND_NONE, alignment=libtcod.RIGHT,
                              fmt='({})'.format(member.cooldown))
 
 
 def render_all(con, panel, entities, player, game_map, fov_map, fov_recompute, message_log, screen_width, screen_height,
-               bar_width, panel_height, panel_y, mouse, colors):
+               acting_member, bar_width, panel_height, panel_y, mouse, colors, target_tiles=None):
     """
     Draw all entities in the list
     :param con: destination drawing console
@@ -66,11 +67,13 @@ def render_all(con, panel, entities, player, game_map, fov_map, fov_recompute, m
     :param message_log: MessageLog object containing list of messages
     :param screen_width: int width of screen
     :param screen_height: int height of screen
+    :param acting_member: int selected member of party
     :param bar_width: int width of bar for panel
     :param panel_height: int height of panel
     :param panel_y: int location of panel
     :param mouse: tuple mouse location
     :param colors: dict of color tuples
+    :param target_tiles: list of tuple tile coordinates for target tiles to be highlighted
     :return: None
     """
     if fov_recompute:
@@ -100,7 +103,10 @@ def render_all(con, panel, entities, player, game_map, fov_map, fov_recompute, m
                         libtcod.console_set_char(con=con, x=x, y=y, c=' ')
                         libtcod.console_set_char_background(con=con, x=x, y=y, col=colors.get('dark_ground'),
                                                             flag=libtcod.BKGND_SET)
-    
+                if target_tiles and (x, y) in target_tiles:
+                    libtcod.console_set_char_background(con=con, x=x, y=y, col=libtcod.lighter_red,
+                                                        flag=libtcod.BKGND_SET)
+
     entities_in_render_order = sorted(entities, key=lambda z: z.render_order.value)
     
     for entity in entities_in_render_order:
@@ -144,7 +150,12 @@ def render_all(con, panel, entities, player, game_map, fov_map, fov_recompute, m
             text_color = libtcod.red
         else:
             text_color = libtcod.white
-        render_member(panel, x, y, member, width=bar_width, text_color=text_color)
+        if target == player and acting_member and member == target.party.members[acting_member - 1]:
+            bkg_color = libtcod.light_gray
+        else:
+            bkg_color = libtcod.darker_gray
+            
+        render_member(panel, x, y, member, width=bar_width, text_color=text_color, bkg_color=bkg_color)
         y += 1
     
     # y = 1
